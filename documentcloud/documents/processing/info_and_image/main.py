@@ -714,6 +714,13 @@ def extract_image(data, _context=None):
     logger.info(
         "[EXTRACT IMAGE] doc_id %s pages %s", doc_id, ",".join(map(str, page_numbers))
     )
+    import os
+
+    logger.info(
+        "[EXTRACT IMAGE] debug fontconfg: %s fcmatch %s",
+        env("FONTCONFIG_PATH", default="-no set-"),
+        os.system("fc-match Arial"),
+    )
 
     # Store a queue of pages to OCR/extract text positions to fill the batch
     ocr_queue = []
