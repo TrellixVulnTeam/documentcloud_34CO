@@ -10,6 +10,7 @@ Globals:
       Variables:
         ENVIRONMENT: aws
         SERVERLESS: True
+        FONTCONFIG_PATH: "/var/task/fonts"
         EXTRACT_IMAGE_BATCH: "{{resolve:ssm:/dc/{$ENV$}/lambdas/extract_image/batch:latest}}"
         OCR_BATCH: "{{resolve:ssm:/dc/{$ENV$}/lambdas/ocr/batch:latest}}"
         TEXT_POSITION_BATCH: "{{resolve:ssm:/dc/{$ENV$}/lambdas/text_position_extract/batch:latest}}"
