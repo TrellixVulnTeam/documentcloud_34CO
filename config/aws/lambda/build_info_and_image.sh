@@ -14,3 +14,21 @@ cp -Lr ../../../documentcloud/documents/processing/info_and_image/* $CODE_DIR 2>
 
 # Set AWS requirements
 cp info-and-image-requirements.txt $CODE_DIR/cloud-requirements.txt
+
+# install fonts
+mkdir $CODE_DIR/fonts
+cat << EOF > $CODE_DIR/fonts/fonts.conf
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+<fontconfig>
+  <dir>/var/task/fonts/</dir>
+  <cachedir>/tmp/fonts-cache/</cachedir>
+  <config></config>
+</fontconfig>
+EOF
+wget https://www.freedesktop.org/software/fontconfig/webfonts/webfonts.tar.gz
+tar -xzf webfonts.tar.gz
+cd msfonts/
+cabextract *.exe
+cd ../
+cp msfonts/*.ttf msfonts/*.TTF $CODE_DIR/fonts
