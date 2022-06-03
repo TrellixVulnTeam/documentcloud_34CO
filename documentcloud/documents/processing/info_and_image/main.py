@@ -716,6 +716,7 @@ def extract_image(data, _context=None):
     )
     import os
 
+    os.system("fc-cache -f")
     logger.info(
         "[EXTRACT IMAGE] debug fontconfg: %s fcmatch %s",
         env("FONTCONFIG_PATH", default="-no set-"),
