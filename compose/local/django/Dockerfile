@@ -19,8 +19,12 @@ RUN apt-get -qq -y update && \
   # Symlink bash and python
   ln -sf bash /bin/sh && rm -f /usr/bin/python && \
   ln -s /usr/bin/python3 /usr/bin/python && \
-  curl https://bootstrap.pypa.io/pip/3.6/get-pip.py -o get-pip.py && \
+  curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
   python3 get-pip.py --force-reinstall
+
+RUN echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | debconf-set-selections && \
+    apt-get -qq -y update && \
+    apt-get -y install ttf-mscorefonts-installer
 
 # set up makecert root CA
 RUN curl http://localhost/rootCA.pem > /usr/local/share/ca-certificates/rootCA.crt && update-ca-certificates

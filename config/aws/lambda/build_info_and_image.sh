@@ -26,9 +26,16 @@ cat << EOF > $CODE_DIR/fonts/fonts.conf
   <config></config>
 </fontconfig>
 EOF
-wget https://www.freedesktop.org/software/fontconfig/webfonts/webfonts.tar.gz
-tar -xzf webfonts.tar.gz
-cd msfonts/
+wget http://downloads.sourceforge.net/corefonts/andale32.exe
+wget http://downloads.sourceforge.net/corefonts/arial32.exe
+wget http://downloads.sourceforge.net/corefonts/arialb32.exe
+wget http://downloads.sourceforge.net/corefonts/comic32.exe
+wget http://downloads.sourceforge.net/corefonts/courie32.exe
+wget http://downloads.sourceforge.net/corefonts/georgi32.exe
+wget http://downloads.sourceforge.net/corefonts/impact32.exe
+wget http://downloads.sourceforge.net/corefonts/times32.exe
+wget http://downloads.sourceforge.net/corefonts/trebuc32.exe
+wget http://downloads.sourceforge.net/corefonts/verdan32.exe
+wget http://downloads.sourceforge.net/corefonts/webdin32.exe
 cabextract *.exe
-cd ../
-cp msfonts/*.ttf msfonts/*.TTF $CODE_DIR/fonts
+cp *.ttf *.TTF $CODE_DIR/fonts
