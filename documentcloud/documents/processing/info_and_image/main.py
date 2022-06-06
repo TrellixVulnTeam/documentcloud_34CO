@@ -718,9 +718,10 @@ def extract_image(data, _context=None):
 
     os.system("fc-cache -f")
     logger.info(
-        "[EXTRACT IMAGE] debug fontconfg: %s fcmatch %s",
+        "[EXTRACT IMAGE] debug fontconfg: %s fcmatch %s /vtf: %s",
         env("FONTCONFIG_PATH", default="-no set-"),
         os.system("fc-match Arial"),
+        ", ".join(os.listdir("/var/task/fonts")),
     )
 
     # Store a queue of pages to OCR/extract text positions to fill the batch
