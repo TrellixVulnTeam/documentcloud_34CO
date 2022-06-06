@@ -719,10 +719,12 @@ def extract_image(data, _context=None):
     os.system("fc-cache -f")
     try:
         logger.info(
-            "[EXTRACT IMAGE] debug fontconfg: %s fcmatch %s /vtf: %s",
+            "[EXTRACT IMAGE] debug fontconfg: %s fcmatch %s list %s /vtf: %s %s",
             env("FONTCONFIG_PATH", default="-no set-"),
             os.system("fc-match Arial"),
+            os.system("fc-list"),
             ", ".join(os.listdir("/var/task/fonts")),
+            ", ".join(os.listdir("/etc/fonts")),
         )
     except:
         pass
