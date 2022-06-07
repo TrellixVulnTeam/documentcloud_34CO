@@ -726,9 +726,9 @@ def extract_image(data, _context=None):
             ", ".join(os.listdir("/var/task/fonts")),
             ", ".join(os.listdir("/etc/fonts")),
         )
-        logger.info("arial.ttf %s", open("/var/task/fonts/arial.TTF").read())
-    except:
-        pass
+        logger.info("arial.ttf %s", open("/var/task/fonts/arial.TTF").read(50))
+    except Exception as exc:
+        print(exc)
 
     # Store a queue of pages to OCR/extract text positions to fill the batch
     ocr_queue = []
