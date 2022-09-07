@@ -441,8 +441,7 @@ class TestSearch:
         ],
     )
     def test_search_notes_content(self, user, note, viewable):
-        """Test that the proper notes are searchable for pro users
-        """
+        """Test that the proper notes are searchable for pro users"""
 
         content = NOTES[note]["content"]
         doc = NOTES[note]["document"]

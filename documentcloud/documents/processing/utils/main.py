@@ -12,37 +12,37 @@ from redis.exceptions import LockError, RedisError
 env = environ.Env()
 logger = logging.getLogger(__name__)
 
+# pylint: disable=import-error
+
 # Imports based on execution context
 if env.str("ENVIRONMENT").startswith("local"):
+    # DocumentCloud
     from documentcloud.common import redis_fields
     from documentcloud.common.environment import (
-        get_http_data,
-        publisher,
         encode_pubsub_data,
         encode_response,
+        get_http_data,
         processing_auth,
+        publisher,
     )
     from documentcloud.common.serverless import utils
     from documentcloud.common.serverless.error_handling import pubsub_function
 else:
+    # Third Party
+    # only initialize sentry on serverless
+    import sentry_sdk
     from common import redis_fields
     from common.environment import (
-        get_http_data,
-        publisher,
         encode_pubsub_data,
         encode_response,
+        get_http_data,
         processing_auth,
+        publisher,
     )
     from common.serverless import utils
     from common.serverless.error_handling import pubsub_function
-
-    # only initialize sentry on serverless
-    # pylint: disable=import-error
-    import sentry_sdk
     from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration
     from sentry_sdk.integrations.redis import RedisIntegration
-
-    # pylint: enable=import-error
 
     sentry_sdk.init(
         dsn=env("SENTRY_DSN"), integrations=[AwsLambdaIntegration(), RedisIntegration()]

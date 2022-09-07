@@ -76,7 +76,6 @@ from documentcloud.documents.tasks import (
     process_cancel,
     redact,
     solr_delete_note,
-    solr_index,
     solr_index_note,
     update_access,
 )
@@ -173,7 +172,7 @@ class DocumentViewSet(BulkModelMixin, FlexFieldsModelViewSet):
             documents = [documents]
 
         for document, file_url, force_ocr in zip(documents, file_urls, force_ocrs):
-            transaction.on_commit(lambda d=document: solr_index.delay(d.pk))
+            document.index_on_commit()
             if file_url is not None:
                 transaction.on_commit(
                     lambda d=document, fu=file_url, fo=force_ocr: fetch_file_url.delay(
@@ -256,9 +255,7 @@ class DocumentViewSet(BulkModelMixin, FlexFieldsModelViewSet):
                 document.original_extension,
             )
         )
-        transaction.on_commit(
-            lambda: solr_index.delay(document.pk, field_updates={"status": "set"})
-        )
+        document.index_on_commit(field_updates={"status": "set"})
 
     @process.mapping.delete
     def cancel_process(self, request, pk=None):
@@ -272,9 +269,7 @@ class DocumentViewSet(BulkModelMixin, FlexFieldsModelViewSet):
         with transaction.atomic():
             document.status = Status.error
             document.save()
-            transaction.on_commit(
-                lambda: solr_index.delay(document.pk, field_updates={"status": "set"})
-            )
+            document.index_on_commit(field_updates={"status": "set"})
             document.errors.create(message="Processing was cancelled")
             transaction.on_commit(lambda: process_cancel.delay(document.pk))
             return Response("OK", status=status.HTTP_200_OK)
@@ -389,7 +384,7 @@ class DocumentViewSet(BulkModelMixin, FlexFieldsModelViewSet):
                     validated_data[f"data_{key}"] = None
             kwargs = {"field_updates": {f: "set" for f in validated_data}}
 
-        transaction.on_commit(lambda: solr_index.delay(document.pk, **kwargs))
+        document.index_on_commit(**kwargs)
 
     def _update_cache(self, document, old_processing):
         """Invalidate the cache when finished processing a detructive operation"""
@@ -532,9 +527,7 @@ class DocumentErrorViewSet(
         serializer.save(document_id=self.document.pk)
         self.document.status = Status.error
         self.document.save()
-        transaction.on_commit(
-            lambda: solr_index.delay(self.document.pk, field_updates={"status": "set"})
-        )
+        self.document.index_on_commit(field_updates={"status": "set"})
 
 
 @method_decorator(conditional_cache_control(no_cache=True), name="dispatch")
@@ -672,9 +665,7 @@ class DataViewSet(viewsets.ViewSet):
         # remove duplicate values
         document.data[pk] = list(set(serializer.data["values"]))
         document.save()
-        transaction.on_commit(
-            lambda: solr_index.delay(document.pk, field_updates={f"data_{pk}": "set"})
-        )
+        document.index_on_commit(field_updates={f"data_{pk}": "set"})
         return Response(document.data)
 
     @transaction.atomic
@@ -701,9 +692,7 @@ class DataViewSet(viewsets.ViewSet):
             del document.data[pk]
 
         document.save()
-        transaction.on_commit(
-            lambda: solr_index.delay(document.pk, field_updates={f"data_{pk}": "set"})
-        )
+        document.index_on_commit(field_updates={f"data_{pk}": "set"})
         return Response(document.data)
 
     @transaction.atomic
@@ -713,11 +702,7 @@ class DataViewSet(viewsets.ViewSet):
         if pk in document.data:
             del document.data[pk]
             document.save()
-            transaction.on_commit(
-                lambda: solr_index.delay(
-                    document.pk, field_updates={f"data_{pk}": "set"}
-                )
-            )
+            document.index_on_commit(field_updates={f"data_{pk}": "set"})
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -760,9 +745,7 @@ class RedactionViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
             # we must invalidate the cache after a redaction
             document.cache_dirty = True
             document.save()
-            transaction.on_commit(
-                lambda: solr_index.delay(document.pk, field_updates={"status": "set"})
-            )
+            document.index_on_commit(field_updates={"status": "set"})
 
         redact.delay(
             document.pk,
@@ -790,7 +773,6 @@ class EntityViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
     def create(self, request, *args, **kwargs):
         """Initiate asyncrhonous creation of entities"""
-        # pylint: disable=unused-argument
         if not request.user.has_perm("documents.change_document", self.document):
             raise exceptions.PermissionDenied(
                 "You do not have permission to edit this document"
@@ -816,9 +798,7 @@ class EntityViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
             document.status = Status.readable
             document.save()
-            transaction.on_commit(
-                lambda: solr_index.delay(document.pk, field_updates={"status": "set"})
-            )
+            document.index_on_commit(field_updates={"status": "set"})
 
             transaction.on_commit(lambda: extract_entities.delay(self.document.pk))
 
@@ -826,7 +806,6 @@ class EntityViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
     def bulk_destroy(self, request, *args, **kwargs):
         """Delete all entities for the document"""
-        # pylint: disable=unused-argument
         if request.user.has_perm("documents.change_document", self.document):
             self.document.entities.all().delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
@@ -912,9 +891,7 @@ class ModificationViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
 
             document.status = Status.pending
             document.save()
-            transaction.on_commit(
-                lambda: solr_index.delay(document.pk, field_updates={"status": "set"})
-            )
+            document.index_on_commit(field_updates={"status": "set"})
 
         modify.delay(
             document.pk,

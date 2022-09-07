@@ -54,11 +54,7 @@ class DocumentAdmin(admin.ModelAdmin):
     @transaction.atomic
     def save_model(self, request, obj, form, change):
         super().save(request, obj, form, change)
-        transaction.on_commit(
-            lambda: solr_index.delay(
-                obj.pk, field_updates={f: "set" for f in form.changed_data}
-            )
-        )
+        obj.index_on_commit(field_updates={f: "set" for f in form.changed_data})
 
     def delete_model(self, request, obj):
         obj.destroy()

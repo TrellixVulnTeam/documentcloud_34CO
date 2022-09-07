@@ -421,6 +421,7 @@ def _parse(text_query, query_params, user):
     # pull text queries from the parameters into the text query
     additional_text = _handle_params(query_params, TEXT_FIELDS, DYNAMIC_TEXT_FIELDS)
     if additional_text:
+        # pylint: disable=consider-using-f-string
         new_query = "{} {}".format(new_query, " ".join(additional_text))
 
     # if nothing is left in the query after pulling out filters, default to *:*
@@ -459,7 +460,6 @@ def _handle_params(query_params, fields, dynamic_fields):
     items = items + [(f"-{p}", f"-{f}") for p, f in items]
     for param, field in items:
         if param in query_params:
-            # pylint: disable=protected-access
             # joining with whitespace will default to OR
             values = query_params.getlist(param)
             if field in NUMERIC_FIELDS:
@@ -477,7 +477,7 @@ def _handle_params(query_params, fields, dynamic_fields):
 
     for pattern in dynamic_fields:
         # allow for negated dynamic fields
-        dynamic_params = [p for p in query_params if re.match(fr"^-?{pattern}$", p)]
+        dynamic_params = [p for p in query_params if re.match(rf"^-?{pattern}$", p)]
         for param in dynamic_params:
             values = " ".join(query_params.getlist(param))
             return_list.append(f"{param}:({values})")
@@ -705,6 +705,7 @@ def _add_canonical_url(results):
 
 
 def _add_asset_url(results):
+    # DocumentCloud
     from documentcloud.documents.tasks import solr_index
 
     for result in results:
@@ -749,6 +750,7 @@ def _expand_organizations(results):
 
 
 def _expand(results, key, queryset, serializer):
+    # DocumentCloud
     from documentcloud.documents.tasks import solr_index
 
     ids = {r[key] for r in results if key in r}

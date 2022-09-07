@@ -112,7 +112,7 @@ def format(c):
             "black config/urls.py && "
             "black config/settings && "
             "isort -rc documentcloud && "
-            "isort config/urls.py && "
+            "isort -rc config/urls.py && "
             "isort -rc config/settings"
         )
     )

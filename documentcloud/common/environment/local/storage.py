@@ -20,13 +20,14 @@ env = environ.Env()
 
 
 class LocalStorageFile:
-    def __init__(self, storage_system, fn, mode="w"):
+    def __init__(self, storage_system, filename, mode="w"):
         self.storage = storage_system
-        self.filename = os.path.join(settings.MEDIA_ROOT, fn)
+        self.filename = os.path.join(settings.MEDIA_ROOT, filename)
         self.mode = mode
         self.handle = None
 
     def __enter__(self):
+        # pylint: disable=unspecified-encoding
         # Ensure that the path exists if writing
         if self.mode.startswith("w"):
             path = Path(self.filename)
@@ -46,7 +47,6 @@ class LocalStorage:
     def __init__(self, trigger=None):
         self.trigger = trigger
 
-    # pylint: disable=invalid-name
     @staticmethod
     def size(filename):
         return os.path.getsize(os.path.join(settings.MEDIA_ROOT, filename))

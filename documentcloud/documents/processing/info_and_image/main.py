@@ -27,12 +27,16 @@ logging.getLogger("pdfminer").setLevel(logging.WARNING)
 # remove this when done with import code
 # pylint: disable=too-many-lines
 
+# pylint: disable=import-error
+
 # Imports based on execution context
 if env.str("ENVIRONMENT").startswith("local"):
-    from documentcloud.common import path, redis_fields, access_choices
+    # DocumentCloud
+    from documentcloud.documents.processing.info_and_image import graft
+    from documentcloud.common import access_choices, path, redis_fields
     from documentcloud.common.environment import (
-        get_pubsub_data,
         encode_pubsub_data,
+        get_pubsub_data,
         publisher,
         storage,
     )
@@ -41,7 +45,6 @@ if env.str("ENVIRONMENT").startswith("local"):
         pubsub_function,
         pubsub_function_import,
     )
-    import documentcloud.documents.processing.info_and_image.graft as graft
     from documentcloud.documents.processing.info_and_image.graft_adapter import (
         GraftContext,
     )
@@ -50,28 +53,24 @@ if env.str("ENVIRONMENT").startswith("local"):
         Workspace,
     )
 else:
-    from common import path, redis_fields, access_choices
+    # Third Party
+    import graft
+
+    # only initialize sentry on serverless
+    import sentry_sdk
+    from common import access_choices, path, redis_fields
     from common.environment import (
-        get_pubsub_data,
         encode_pubsub_data,
+        get_pubsub_data,
         publisher,
         storage,
     )
     from common.serverless import utils
     from common.serverless.error_handling import pubsub_function, pubsub_function_import
-
-    # pylint: disable=import-error
-    import graft
     from graft_adapter import GraftContext
     from pdfium import StorageHandler, Workspace
-
-    # only initialize sentry on serverless
-    # pylint: disable=import-error
-    import sentry_sdk
     from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration
     from sentry_sdk.integrations.redis import RedisIntegration
-
-    # pylint: enable=import-error
 
     sentry_sdk.init(
         dsn=env("SENTRY_DSN"), integrations=[AwsLambdaIntegration(), RedisIntegration()]
@@ -381,6 +380,7 @@ def apply_modification(workspace, new_doc, context, modification):
     import_doc_id = modification.get("id", context["doc_id"])
     import_doc_slug = modification.get("slug", context["slug"])
     import_pdf_file = path.doc_path(import_doc_id, import_doc_slug)
+    # pylint: disable=unnecessary-dunder-call
     import_doc = context["loaded_docs"].get(
         import_pdf_file,
         workspace.load_document_entirely(storage, import_pdf_file).__enter__(),
@@ -1258,7 +1258,7 @@ def import_document(data, _context=None):
                     )
                     if retry == 2:
                         raise exc
-                    time.sleep(randint(2 ** retry, 2 ** (retry + 1)))
+                    time.sleep(randint(2**retry, 2 ** (retry + 1)))
     except (ValueError, AssertionError, ClientError):
         # document was not found
         logger.info(
@@ -1364,7 +1364,7 @@ def import_document(data, _context=None):
                 retry,
             )
             if retry < 2:
-                time.sleep(randint(2 ** retry, 2 ** (retry + 1)))
+                time.sleep(randint(2**retry, 2 ** (retry + 1)))
     else:
         # Did not succeed after 3 retires, just skip
         logger.info("[UPLOAD JSON TEXT] failed - org_id %s doc_id %s", org_id, doc_id)
