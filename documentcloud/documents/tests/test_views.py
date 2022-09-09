@@ -50,7 +50,7 @@ class TestFreestandingEntityAPI:
 
         client.force_authenticate(user=user)
         response = client.post(
-            "/api/freestanding_entities/",
+            "/api/entities/",
             entity_body,
             format="json",
         )
