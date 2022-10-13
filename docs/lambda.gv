@@ -1,0 +1,42 @@
+
+digraph Lambda {
+
+    subgraph cluster_ii {
+        process_pdf -> process_page_cache;
+        process_page_cache -> extract_image [style="bold"];
+        extract_image -> extract_text_position [label="Has text", style="bold"];
+        extract_text_position -> assemble_page_text;
+        redact_doc -> process_page_cache;
+        modify_doc -> process_pdf;
+        label = "info_and_image";
+    }
+
+    send_complete [shape="diamond"];
+    assemble_page_text -> send_complete;
+
+    send_modification_post_processing [shape="diamond"];
+    extract_text_position -> send_modification_post_processing [label="Modify"];
+
+    subgraph cluster_ocr {
+        run_tesseract -> extract_text_position [label="Tesseract", style="bold"];
+        run_tesseract -> assemble_page_text [label="Textract", style="bold"];
+        label = "ocr";
+    }
+
+    extract_image -> run_tesseract [label="No text", style="bold"];
+
+    subgraph cluster_doc_conv {
+        run_document_conversion -> process_pdf;
+        label = "document_conversion";
+    }
+
+    subgraph cluster_utils {
+        process_doc -> {
+            process_pdf
+            run_document_conversion
+            redact_doc
+            modify_doc
+        };
+        label = "utils";
+    }
+}

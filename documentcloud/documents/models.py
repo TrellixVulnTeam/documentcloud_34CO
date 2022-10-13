@@ -122,6 +122,15 @@ class Document(models.Model):
         default=True,
         help_text=_("Tracks if the Solr Index is out of date with the SQL model"),
     )
+    delayed_index = models.BooleanField(
+        _("delayed index"),
+        default=False,
+        help_text=_(
+            "Do not index the document in Solr immediately - "
+            "Wait for it to be batched indexed by the dirty indexer. "
+            "Useful when uploading in bulk to not overwhelm the Celery queue."
+        ),
+    )
 
     data = models.JSONField(default=dict)
 
@@ -242,7 +251,6 @@ class Document(models.Model):
 
     def save(self, *args, **kwargs):
         """Mark this model's solr index as being out of date on every save"""
-        # pylint: disable=signature-differs
         if not self.slug:
             self.slug = slugify(self.title)
         self.solr_dirty = True
@@ -250,6 +258,7 @@ class Document(models.Model):
 
     @transaction.atomic
     def destroy(self):
+        # DocumentCloud
         from documentcloud.documents.tasks import delete_document_files, solr_delete
 
         self.status = Status.deleted
@@ -461,6 +470,14 @@ class Document(models.Model):
                     "X-Auth-Key": cloudflare_key,
                 },
             )
+
+    def index_on_commit(self, **kwargs):
+        """Index the document in Solr on tranasction commit"""
+        # DocumentCloud
+        from documentcloud.documents.tasks import solr_index
+
+        if not self.delayed_index:
+            transaction.on_commit(lambda: solr_index.delay(self.pk, **kwargs))
 
 
 class DeletedDocument(models.Model):
@@ -675,7 +692,6 @@ class Note(models.Model):
 
     def save(self, *args, **kwargs):
         """Mark this model's solr index as being out of date on every save"""
-        # pylint: disable=signature-differs
         self.solr_dirty = True
         super().save(*args, **kwargs)
 

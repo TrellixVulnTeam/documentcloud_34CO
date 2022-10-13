@@ -29,27 +29,28 @@ logger = logging.getLogger(__name__)
 
 if settings.ENVIRONMENT.startswith("local"):
     # pylint: disable=unused-import
+    # DocumentCloud
     from documentcloud.documents.local_tasks import (
-        process_file_internal,
-        document_convert,
-        cache_pages,
-        extract_images,
-        ocr_pages,
         assemble_text,
-        text_position_extract,
-        redact_document,
-        modify_document,
-        start_import_process,
-        import_doc,
+        cache_pages,
+        document_convert,
+        extract_images,
         finish_import_process,
+        import_doc,
+        modify_document,
+        ocr_pages,
+        process_file_internal,
+        redact_document,
         retry_errors_local,
+        start_import_process,
+        text_position_extract,
     )
 
 logger = logging.getLogger(__name__)
 
 
 @task(autoretry_for=(HTTPError,), retry_backoff=30)
-def fetch_file_url(file_url, document_pk, force_ocr, auth=None):
+def fetch_file_url(file_url, document_pk, force_ocr, ocr_engine, auth=None):
     """Download a file to S3 when given a URL on document creation"""
     document = Document.objects.get(pk=document_pk)
     if auth is not None:
@@ -70,21 +71,18 @@ def fetch_file_url(file_url, document_pk, force_ocr, auth=None):
             document.errors.create(message=exc.args[0])
             document.status = Status.error
             document.save()
-            transaction.on_commit(
-                lambda: solr_index.delay(document.pk, field_updates={"status": "set"})
-            )
+            document.index_on_commit(field_updates={"status": "set"})
     else:
         document.status = Status.pending
         document.save()
-        transaction.on_commit(
-            lambda: solr_index.delay(document.pk, field_updates={"status": "set"})
-        )
+        document.index_on_commit(field_updates={"status": "set"})
         process.delay(
             document_pk,
             document.slug,
             document.access,
             document.language,
             force_ocr,
+            ocr_engine,
             document.original_extension,
         )
 
@@ -106,12 +104,10 @@ def _httpsub_submit(url, document_pk, json, task_):
     except RequestException as exc:
         if task_.request.retries >= task_.max_retries:
             with transaction.atomic():
-                Document.objects.filter(pk=document_pk).update(status=Status.error)
-                transaction.on_commit(
-                    lambda: solr_index.delay(
-                        document_pk, field_updates={"status": "set"}
-                    )
-                )
+                document = Document.objects.get(pk=document_pk)
+                document.status = Status.error
+                document.save()
+                document.index_on_commit(field_updates={"status": "Set"})
                 DocumentError.objects.create(
                     document_id=document_pk,
                     message=f"Submitting for {task_.name} failed",
@@ -132,7 +128,9 @@ def _httpsub_submit(url, document_pk, json, task_):
     retry_backoff=30,
     retry_kwargs={"max_retries": settings.HTTPSUB_RETRY_LIMIT},
 )
-def process(document_pk, slug, access, ocr_code, force_ocr, extension="pdf"):
+def process(
+    document_pk, slug, access, ocr_code, force_ocr, ocr_engine, extension="pdf"
+):
     """Start the processing"""
     _httpsub_submit(
         settings.DOC_PROCESSING_URL,
@@ -145,6 +143,7 @@ def process(document_pk, slug, access, ocr_code, force_ocr, extension="pdf"):
             "ocr_code": ocr_code,
             "method": "process_pdf",
             "force_ocr": force_ocr,
+            "ocr_engine": ocr_engine,
         },
         process,
     )
@@ -274,9 +273,8 @@ def finish_update_access(document_pk, status, access):
             kwargs["publication_date"] = date.today()
 
         Document.objects.filter(pk=document_pk).update(status=status, **kwargs)
-        transaction.on_commit(
-            lambda: solr_index.delay(document_pk, field_updates=field_updates)
-        )
+        document = Document.objects.get(pk=document_pk)
+        document.index_on_commit(field_updates=field_updates)
 
 
 # new solr
@@ -376,9 +374,7 @@ def publish_scheduled_documents():
             lambda d=document: update_access.delay(d.pk, Status.success, Access.public)
         )
         # update solr
-        transaction.on_commit(
-            lambda d=document: solr_index.delay(d.pk, field_updates={"status": "set"})
-        )
+        document.index_on_commit(field_updates={"status": "set"})
 
 
 @task

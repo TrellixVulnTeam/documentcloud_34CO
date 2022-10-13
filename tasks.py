@@ -1,7 +1,7 @@
 # Third Party
 from invoke import task
 
-COMPOSE_PREFIX = "docker-compose -f local.yml"
+COMPOSE_PREFIX = "docker compose -f local.yml"
 COMPOSE_BUILD = f"{COMPOSE_PREFIX} build {{opt}} {{service}}"
 COMPOSE_RUN_OPT = f"{COMPOSE_PREFIX} run {{opt}} --rm {{service}} {{cmd}}"
 COMPOSE_RUN_OPT_USER = COMPOSE_RUN_OPT.format(
@@ -112,7 +112,7 @@ def format(c):
             "black config/urls.py && "
             "black config/settings && "
             "isort -rc documentcloud && "
-            "isort config/urls.py && "
+            "isort -rc config/urls.py && "
             "isort -rc config/settings"
         )
     )
@@ -243,7 +243,7 @@ def update_solr_config(c):
     Be sure to bring the container down and up again after updating
     """
     template = (
-        "docker cp config/solr/{old_file} documentcloud_documentcloud_{container}:"
+        "docker cp config/solr/{old_file} documentcloud-documentcloud_{container}:"
         "/var/solr/data/{collection}/{new_file}"
     )
 
@@ -252,8 +252,8 @@ def update_solr_config(c):
         ("solrconfig.local.xml", "solrconfig.xml"),
     ]:
         for container, collection in [
-            ("solr_1", "documentcloud"),
-            ("test_solr_1", "documentcloud_test"),
+            ("solr-1", "documentcloud"),
+            ("test_solr-1", "documentcloud_test"),
         ]:
             c.run(
                 template.format(

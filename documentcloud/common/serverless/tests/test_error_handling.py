@@ -36,7 +36,7 @@ from documentcloud.documents.processing.info_and_image.pdfium import (
 redis = {redis_fields.is_running(1): b"1"}
 
 
-def communicate_data(*args):  # pylint: disable=unused-argument
+def communicate_data(*args):
     """A simple method to inspect for data communicated in test methods"""
 
 
