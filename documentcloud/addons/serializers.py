@@ -1,4 +1,5 @@
 # Django
+from django.conf import settings
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
@@ -166,7 +167,9 @@ class AddOnRunSerializer(FlexFieldsModelSerializer):
 
     def get_file_url(self, obj):
         if obj.file_name:
-            return reverse("addon-run-file", args=[obj.uuid])
+            return settings.DOCCLOUD_API_URL + reverse(
+                "addon-run-file", args=[obj.uuid]
+            )
         else:
             return None
 
