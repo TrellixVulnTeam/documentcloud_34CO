@@ -1,4 +1,5 @@
 # Django
+from django.core.urlresolvers import reverse
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
@@ -165,7 +166,7 @@ class AddOnRunSerializer(FlexFieldsModelSerializer):
 
     def get_file_url(self, obj):
         if obj.file_name:
-            return storage.presign_url(obj.file_path(), "get_object")
+            return reverse("addon-run-file", args=[obj.uuid])
         else:
             return None
 
