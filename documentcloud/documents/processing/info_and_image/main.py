@@ -10,11 +10,13 @@ import logging
 import pickle
 import time
 from random import randint
+from urllib.parse import urljoin
 
 # Third Party
 import environ
 import pdfplumber
 import redis
+import requests
 from botocore.exceptions import ClientError
 from listcrunch import crunch_collection
 from PIL import Image
@@ -562,7 +564,7 @@ def process_page_cache(data, _context=None):
     dirty = data.get("dirty")
     force_ocr = data.get("force_ocr", False)
     ocr_engine = data.get("ocr_engine", "tess4")
-    org_id = data.get("org_id", "")
+    org_id = data.get("org_id", None)
     page_modification = data.get("page_modification", None)
 
     logger.info("[PROCESS PAGE CACHE] doc_id %s", doc_id)
@@ -584,6 +586,17 @@ def process_page_cache(data, _context=None):
         # Create an index file that stores the memory locations of each page of the
         # PDF file.
         write_cache(path.index_path(doc_id, slug), cached)
+
+        # check AI credits if using premium OCR engine
+        if ocr_engine == "textract":
+            resp = requests.post(
+                urljoin(utils.API_CALLBACK, f"organizations/{org_id}/ai_credits/"),
+                json={"ai_credits": page_count},
+                timeout=30,
+                headers={"Authorization": f"processing-token {utils.PROCESSING_TOKEN}"},
+            )
+            if resp.status_code != 200:
+                ocr_engine = "tess4"
 
         # Method to publish image batches
         def pub(pages):
@@ -633,6 +646,7 @@ def process_pdf(data, _context=None):
     ocr_engine = data.get("ocr_engine", "tess4")
     ocr_code = data.get("ocr_code", "eng")
     page_modification = data.get("page_modification", None)
+    org_id = data.get("org_id", None)
 
     logger.info("[PROCESS PDF] doc_id %s", doc_id)
 
@@ -666,6 +680,7 @@ def process_pdf(data, _context=None):
                 "ocr_code": ocr_code,
                 "force_ocr": force_ocr,
                 "ocr_engine": ocr_engine,
+                "org_id": org_id,
                 "page_modification": page_modification,
             }
         ),
@@ -727,6 +742,7 @@ def extract_image(data, _context=None):
     partial = data["partial"]  # Whether it is a partial update (e.g. redaction) or not
     force_ocr = data["force_ocr"]
     ocr_engine = data.get("ocr_engine", "tess4")
+    org_id = data.get("org_id", None)
     page_modification = data.get("page_modification", None)
 
     logger.info(
@@ -770,6 +786,7 @@ def extract_image(data, _context=None):
                     "partial": partial,
                     "force_ocr": force_ocr,
                     "ocr_engine": ocr_engine,
+                    "org_id": org_id,
                     "page_modification": page_modification,
                 }
             ),

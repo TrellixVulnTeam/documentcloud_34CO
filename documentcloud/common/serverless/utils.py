@@ -14,6 +14,8 @@ import furl
 import redis as _redis
 import requests
 from redis.lock import Lock
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 # Local
 from .. import redis_fields
